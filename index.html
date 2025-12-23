@@ -237,6 +237,7 @@
             align-items: center;
         }
 
+        /* MUDANÇA: Ajuste no item de notificação para acomodar os botões de ação */
         .notification-item {
             padding: 12px 15px;
             border-bottom: 1px solid #f0f0f0;
@@ -272,6 +273,7 @@
             color: #aaa;
         }
 
+        /* MUDANÇA: Novo estilo para ações da notificação */
         .notification-actions {
             display: flex;
             gap: 5px;
@@ -280,6 +282,7 @@
             right: 10px;
         }
 
+        /* MUDANÇA: Novo estilo para notificações prioritárias */
         .priority-notification {
             border-left: 4px solid var(--gold);
             background-color: rgba(255, 215, 0, 0.1);
@@ -410,6 +413,7 @@
             gap: 5px;
         }
 
+        /* MUDANÇA: Escondendo os indicadores de tendência */
         .trend-indicator {
             display: none !important;
         }
@@ -1327,56 +1331,6 @@
             width: auto;
             margin: 0;
         }
-
-        /* Estilos para paginação */
-        .pagination-container {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin: 20px 0;
-            padding: 10px;
-            background-color: #f8f9fa;
-            border-radius: 5px;
-        }
-        
-        .pagination-info {
-            font-size: 14px;
-            color: #6c757d;
-        }
-        
-        .pagination-buttons {
-            display: flex;
-            gap: 5px;
-        }
-        
-        .pagination-buttons button {
-            padding: 5px 10px;
-            background-color: #f8f9fa;
-            border: 1px solid #ddd;
-            border-radius: 4px;
-            cursor: pointer;
-            transition: all 0.3s ease;
-        }
-        
-        .pagination-buttons button:hover:not(:disabled) {
-            background-color: #e9ecef;
-        }
-        
-        .pagination-buttons button.active {
-            background-color: var(--primary-color);
-            color: white;
-            border-color: var(--primary-color);
-        }
-        
-        .pagination-buttons button:disabled {
-            opacity: 0.5;
-            cursor: not-allowed;
-        }
-        
-        .pagination-ellipsis {
-            padding: 0 5px;
-            color: #6c757d;
-        }
     </style>
 </head>
 <body>
@@ -1496,15 +1450,6 @@
                     <div class="stat-info">
                         <h3 id="rotinaCount">0</h3>
                         <p>Tarefas de Rotina</p>
-                    </div>
-                </div>
-                <div class="stat-card info" id="paraAprovacaoCard" style="display: none;" onclick="drillDown('paraAprovacao')">
-                    <div class="stat-icon info">
-                        <i class="fas fa-clipboard-check"></i>
-                    </div>
-                    <div class="stat-info">
-                        <h3 id="paraAprovacaoCount">0</h3>
-                        <p>Para Aprovação</p>
                     </div>
                 </div>
             </div>
@@ -1926,17 +1871,13 @@
     let timerInterval;
     let charts = {};
     let filtroFuncionarioAtual = 'todos';
+    // MUDANÇA: Variável global para notificações do usuário
     let userNotifications = []; 
     let pendingAction = null;
     let selectedOverdueItems = [];
     let demandaResolucaoAtual = null;
     let demandaAtribuicaoAtual = null;
     let selectedUsers = [];
-    // Variáveis para paginação
-    let paginaAtual = 1;
-    let itensPorPagina = 10;
-    let totalPaginas = 1;
-    let tipoDemandaAtual = '';
 
     const SERVER_URL = window.location.origin;
     let serverConnected = false;
@@ -1961,12 +1902,14 @@
         dropdown.classList.toggle('show');
     }
 
+    // MUDANÇA: Função para salvar notificações no localStorage de forma individual
     function salvarNotificacoesNoStorage() {
         if (!usuarioLogado) return;
         const storageKey = `userNotifications_${usuarioLogado.id}`;
         localStorage.setItem(storageKey, JSON.stringify(userNotifications));
     }
 
+    // MUDANÇA: Função para carregar notificações do localStorage de forma individual
     function carregarNotificacoesDoStorage() {
         if (!usuarioLogado) {
             userNotifications = [];
@@ -1988,6 +1931,7 @@
         updateNotificationCount();
     }
 
+    // MUDANÇA: A função agora aceita dados extras, como a TAG da demanda
     function addUserNotification(type, title, message, data = {}) {
         const notification = {
             id: Date.now() + Math.random(),
@@ -1995,28 +1939,30 @@
             title: title,
             message: message,
             date: new Date(),
-            priority: false,
+            priority: false, // Inicialmente não é prioridade
             ...data
         };
         userNotifications.unshift(notification);
         renderUserNotifications();
         updateNotificationCount();
-        salvarNotificacoesNoStorage();
+        salvarNotificacoesNoStorage(); // Salva imediatamente após adicionar
     }
 
+    // MUDANÇA: Função para marcar uma notificação individual como lida
     function markAsRead(id) {
         userNotifications = userNotifications.filter(n => n.id !== id);
         renderUserNotifications();
         updateNotificationCount();
-        salvarNotificacoesNoStorage();
+        salvarNotificacoesNoStorage(); // Salva imediatamente após marcar como lida
     }
 
+    // MUDANÇA: Função para alternar prioridade de uma notificação
     function togglePriority(id) {
         const notification = userNotifications.find(n => n.id === id);
         if (notification) {
             notification.priority = !notification.priority;
             renderUserNotifications();
-            salvarNotificacoesNoStorage();
+            salvarNotificacoesNoStorage(); // Salva imediatamente após alterar a prioridade
         }
     }
 
@@ -2024,7 +1970,7 @@
         userNotifications = [];
         renderUserNotifications();
         updateNotificationCount();
-        salvarNotificacoesNoStorage();
+        salvarNotificacoesNoStorage(); // Salva imediatamente após limpar
     }
 
     function updateNotificationCount() {
@@ -2035,6 +1981,7 @@
         }
     }
     
+    // MUDANÇA: Renderiza as notificações com os botões de ação e destaque para prioridade
     function renderUserNotifications() {
         const listContainer = document.getElementById('notificationsList');
         if (!listContainer) return;
@@ -2101,6 +2048,7 @@
         }
     }
 
+    // MUDANÇA: Evento de login atualizado para carregar notificações
     document.getElementById('loginForm').addEventListener('submit', function(e) {
         e.preventDefault();
         
@@ -2128,6 +2076,7 @@
         configurarInterfaceUsuario();
         inicializarSistemaPrincipal();
         
+        // MUDANÇA: Carrega as notificações específicas deste usuário do localStorage
         carregarNotificacoesDoStorage();
         
         showNotification('success', 'Bem-vindo!', `Olá, ${usuario.nome}! Você está logado como ${usuario.role === 'gestor' ? 'Gestor' : 'Funcionário'}`);
@@ -2168,6 +2117,7 @@
         gerarNotificacoesAoLogar();
     }
 
+    // MUDANÇA: Evento de logout atualizado para salvar notificações
     function logout() {
         if (confirm('Tem certeza que deseja sair do sistema?')) {
             salvarNotificacoesNoStorage();
@@ -2368,6 +2318,7 @@
         return false;
     }
 
+    // MUDANÇA: Atualizada para não atualizar o badge do dashboard
     function atualizarBadges() {
         const pendentes = getDemandasParaUsuarioLogado().filter(d => d.status === 'pendente' || d.status === 'finalizado_pendente_aprovacao' || d.status === 'atribuida_pendente_aceitacao').length;
         const atrasadas = getDemandasParaUsuarioLogado().filter(d => {
@@ -2383,10 +2334,11 @@
         updateBadge('completedBadge', concluidas);
     }
 
+    // MUDANÇA: Atualizada para ignorar o badge do dashboard
     function updateBadge(badgeId, count) {
         const badge = document.getElementById(badgeId);
         if (badge) {
-            if (badgeId === 'dashboardBadge') return;
+            if (badgeId === 'dashboardBadge') return; // Não atualizar o badge do dashboard
             
             if (count > 0) {
                 badge.textContent = count;
@@ -2478,6 +2430,7 @@
         return demandasBase;
     }
 
+    // MUDANÇA: Atualizada para não mostrar os indicadores de tendência
     function atualizarDashboard() {
         const demandasFiltradas = getDemandasFiltradas();
         const totalDemandas = demandasFiltradas.length;
@@ -2490,41 +2443,15 @@
         }).length;
         const aprovadas = demandasFiltradas.filter(d => d.status === 'aprovada').length;
         const rotina = demandasFiltradas.filter(d => d.isRotina).length;
-        
-        let paraAprovacao = 0;
-        if (usuarioLogado && usuarioLogado.role === 'gestor') {
-            paraAprovacao = demandasFiltradas.filter(d => d.status === 'finalizado_pendente_aprovacao').length;
-        }
 
         animateValue('totalDemandas', totalDemandas);
         animateValue('pendentesCount', pendentes);
         animateValue('atrasadasCount', atrasadas);
         animateValue('aprovadasCount', aprovadas);
         animateValue('rotinaCount', rotina);
-        
-        if (usuarioLogado && usuarioLogado.role === 'gestor' && paraAprovacao > 0) {
-            const dashboard = document.querySelector('.dashboard');
-            if (dashboard && !document.getElementById('paraAprovacaoCard')) {
-                const card = document.createElement('div');
-                card.className = 'stat-card info';
-                card.id = 'paraAprovacaoCard';
-                card.onclick = () => drillDown('paraAprovacao');
-                card.innerHTML = `
-                    <div class="stat-icon info">
-                        <i class="fas fa-clipboard-check"></i>
-                    </div>
-                    <div class="stat-info">
-                        <h3 id="paraAprovacaoCount">${paraAprovacao}</h3>
-                        <p>Para Aprovação</p>
-                    </div>
-                `;
-                dashboard.appendChild(card);
-            } else if (document.getElementById('paraAprovacaoCount')) {
-                animateValue('paraAprovacaoCount', paraAprovacao);
-            }
-        }
     }
 
+    // MUDANÇA: Simplificada para não criar indicadores de tendência
     function animateValue(elementId, value) {
         const element = document.getElementById(elementId);
         if (!element) return;
@@ -2693,51 +2620,7 @@
         });
     }
 
-    // Função para criar controles de paginação
-    function criarControlesPaginacao(totalItens, tipo) {
-        totalPaginas = Math.ceil(totalItens / itensPorPagina);
-        
-        let html = `<div class="pagination-container">`;
-        html += `<div class="pagination-info">Mostrando ${Math.min(itensPorPagina, totalItens)} de ${totalItens} demandas</div>`;
-        html += `<div class="pagination-buttons">`;
-        
-        // Botão anterior
-        html += `<button onclick="mudarPagina('anterior', '${tipo}')" ${paginaAtual === 1 ? 'disabled' : ''}><i class="fas fa-chevron-left"></i> Anterior</button>`;
-        
-        // Números das páginas
-        for (let i = 1; i <= totalPaginas; i++) {
-            if (i === 1 || i === totalPaginas || (i >= paginaAtual - 1 && i <= paginaAtual + 1)) {
-                html += `<button onclick="mudarPagina(${i}, '${tipo}')" class="${i === paginaAtual ? 'active' : ''}">${i}</button>`;
-            } else if (i === paginaAtual - 2 || i === paginaAtual + 2) {
-                html += `<span class="pagination-ellipsis">...</span>`;
-            }
-        }
-        
-        // Botão próximo
-        html += `<button onclick="mudarPagina('proxima', '${tipo}')" ${paginaAtual === totalPaginas ? 'disabled' : ''}>Próxima <i class="fas fa-chevron-right"></i></button>`;
-        html += `</div></div>`;
-        
-        return html;
-    }
-
-    // Função para mudar de página
-    function mudarPagina(destino, tipo) {
-        if (destino === 'anterior' && paginaAtual > 1) {
-            paginaAtual--;
-        } else if (destino === 'proxima' && paginaAtual < totalPaginas) {
-            paginaAtual++;
-        } else if (typeof destino === 'number') {
-            paginaAtual = destino;
-        }
-        
-        tipoDemandaAtual = tipo;
-        renderizarDemandas();
-    }
-
     function switchTab(tabName) {
-        // Resetar a página atual ao mudar de aba
-        paginaAtual = 1;
-        
         document.querySelectorAll('.tab').forEach(tab => { tab.classList.remove('active'); });
         document.querySelectorAll('.tab-content').forEach(content => { content.classList.remove('active'); });
         
@@ -2777,10 +2660,6 @@
 
         if (tabName === 'dashboard') {
             setTimeout(() => { atualizarGraficos(); }, 100);
-        }
-        
-        if (tabName === 'ranking') {
-            setTimeout(() => { atualizarRanking(); }, 100);
         }
     }
 
@@ -3151,88 +3030,34 @@
             return dataLimite < hoje;
         });
 
-        // Renderizar demandas pendentes com paginação
         if (pendentesContainer) {
             if (pendentes.length === 0) {
                 pendentesContainer.innerHTML = '<p>Nenhuma demanda pendente no momento.</p>';
             } else {
-                // Adicionar controles de paginação
-                const paginacaoDiv = document.createElement('div');
-                paginacaoDiv.className = 'pagination-container';
-                paginacaoDiv.innerHTML = criarControlesPaginacao(pendentes.length, 'pendentes');
-                pendentesContainer.appendChild(paginacaoDiv);
-                
-                // Renderizar apenas as demandas da página atual
-                const inicio = (paginaAtual - 1) * itensPorPagina;
-                const fim = inicio + itensPorPagina;
-                const demandasPagina = pendentes.slice(inicio, fim);
-                
-                demandasPagina.forEach(demanda => {
+                pendentes.forEach(demanda => {
                     const elemento = criarElementoDemanda(demanda);
                     pendentesContainer.appendChild(elemento);
                 });
-                
-                // Adicionar controles de paginação no final
-                const paginacaoDivFinal = document.createElement('div');
-                paginacaoDivFinal.className = 'pagination-container';
-                paginacaoDivFinal.innerHTML = criarControlesPaginacao(pendentes.length, 'pendentes');
-                pendentesContainer.appendChild(paginacaoDivFinal);
             }
         }
 
-        // Renderizar demandas atrasadas com paginação
         if (atrasadasContainer) {
             if (atrasadas.length === 0) {
                 atrasadasContainer.innerHTML = '<p>Nenhuma demanda atrasada no momento.</p>';
             } else {
-                // Adicionar controles de paginação
-                const paginacaoDiv = document.createElement('div');
-                paginacaoDiv.className = 'pagination-container';
-                paginacaoDiv.innerHTML = criarControlesPaginacao(atrasadas.length, 'atrasadas');
-                atrasadasContainer.appendChild(paginacaoDiv);
-                
-                // Renderizar apenas as demandas da página atual
-                const inicio = (paginaAtual - 1) * itensPorPagina;
-                const fim = inicio + itensPorPagina;
-                const demandasPagina = atrasadas.slice(inicio, fim);
-                
-                demandasPagina.forEach(demanda => {
+                atrasadas.forEach(demanda => {
                     atrasadasContainer.appendChild(criarElementoDemanda(demanda, true));
                 });
-                
-                // Adicionar controles de paginação no final
-                const paginacaoDivFinal = document.createElement('div');
-                paginacaoDivFinal.className = 'pagination-container';
-                paginacaoDivFinal.innerHTML = criarControlesPaginacao(atrasadas.length, 'atrasadas');
-                atrasadasContainer.appendChild(paginacaoDivFinal);
             }
         }
 
-        // Renderizar demandas concluídas com paginação
         if (aprovadasContainer) {
             if (concluidas.length === 0) {
                 aprovadasContainer.innerHTML = '<p>Nenhuma demanda concluída a ser exibida.</p>';
             } else {
-                // Adicionar controles de paginação
-                const paginacaoDiv = document.createElement('div');
-                paginacaoDiv.className = 'pagination-container';
-                paginacaoDiv.innerHTML = criarControlesPaginacao(concluidas.length, 'aprovadas');
-                aprovadasContainer.appendChild(paginacaoDiv);
-                
-                // Renderizar apenas as demandas da página atual
-                const inicio = (paginaAtual - 1) * itensPorPagina;
-                const fim = inicio + itensPorPagina;
-                const demandasPagina = concluidas.slice(inicio, fim);
-                
-                demandasPagina.forEach(demanda => {
+                concluidas.forEach(demanda => {
                     aprovadasContainer.appendChild(criarElementoDemanda(demanda));
                 });
-                
-                // Adicionar controles de paginação no final
-                const paginacaoDivFinal = document.createElement('div');
-                paginacaoDivFinal.className = 'pagination-container';
-                paginacaoDivFinal.innerHTML = criarControlesPaginacao(concluidas.length, 'aprovadas');
-                aprovadasContainer.appendChild(paginacaoDivFinal);
             }
         }
     }
@@ -3600,23 +3425,12 @@
         if (rankingList) {
             rankingList.innerHTML = '';
             
-            if (rankingArray.length === 0) {
-                rankingList.innerHTML = '<p class="empty-state"><i class="fas fa-chart-bar"></i> Nenhum dado de ranking disponível</p>';
-                return;
-            }
-            
             rankingArray.forEach((item, index) => {
                 const li = document.createElement('li');
                 li.className = 'ranking-item';
                 
-                // Adicionar medalhas para os 3 primeiros colocados
-                let medalha = '';
-                if (index === 0) medalha = '<i class="fas fa-trophy" style="color: gold;"></i>';
-                else if (index === 1) medalha = '<i class="fas fa-medal" style="color: silver;"></i>';
-                else if (index === 2) medalha = '<i class="fas fa-award" style="color: #cd7f32;"></i>';
-                
                 li.innerHTML = `
-                    <div class="ranking-position">${index + 1} ${medalha}</div>
+                    <div class="ranking-position">${index + 1}</div>
                     <div class="ranking-info">
                         <strong>${item.nome}</strong>
                         <div class="ranking-stats">
@@ -3694,11 +3508,7 @@
         showNotification('info', 'Análise Detalhada', `Analisando detalhes de ${type}...`);
         
         setTimeout(() => {
-            if (type === 'paraAprovacao') {
-                switchTab('pendentes');
-            } else {
-                switchTab('pendentes');
-            }
+            switchTab('pendentes');
         }, 1000);
     }
 
@@ -4124,18 +3934,23 @@
             let addedCount = 0;
             let skippedCount = 0;
 
+            // Primeiro, vamos obter as demandas atuais do servidor para garantir que temos a lista mais recente
             await carregarDadosDoServidor();
 
             for (const demandaImportada of importedData) {
+                // Verificação mais robusta: usa apenas a TAG como identificador único
                 const demandaExistente = todasDemandas.find(d => d.tag === demandaImportada.tag);
                 
                 if (demandaExistente) {
+                    // Se a demanda existe, vamos atualizá-la
+                    // Mantemos o ID original do servidor para garantir que estamos atualizando o registro correto
                     const dadosAtualizados = {
                         ...demandaImportada,
-                        id: demandaExistente.id
+                        id: demandaExistente.id // Mantém o ID do servidor
                     };
                     
-                    delete dadosAtualizados.dataCriacao;
+                    // Remove campos que não devem ser atualizados (como data de criação, se necessário)
+                    delete dadosAtualizados.dataCriacao; // Mantém a data de criação original
                     
                     const sucesso = await atualizarDemandaNoServidor(demandaExistente.id, dadosAtualizados);
                     
@@ -4145,10 +3960,13 @@
                         skippedCount++;
                     }
                 } else {
+                    // Se a demanda não existe, vamos adicioná-la
+                    // Garante que a demanda importada tenha um ID único
                     if (!demandaImportada.id) {
                        demandaImportada.id = Date.now() + Math.random();
                     }
                     
+                    // Se não tiver tag, cria uma nova
                     if (!demandaImportada.tag) {
                         demandaImportada.tag = `DEM-IMP-${Date.now()}`;
                     }
@@ -4163,6 +3981,7 @@
                 }
             }
 
+            // Agora sim, recarrega os dados do servidor para ter a lista atualizada
             await carregarDadosDoServidor();
             renderizarTodasAsAbas();
             atualizarDashboard();
@@ -4186,14 +4005,6 @@
     };
 
     reader.readAsText(file);
-}
-
-// Função para renderizar todas as abas quando necessário
-function renderizarTodasAsAbas() {
-    renderizarDemandas();
-    renderizarCobranca();
-    atualizarRanking();
-    atualizarDashboard();
 }
 
 </script>
