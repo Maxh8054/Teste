@@ -17,46 +17,60 @@ const db = new sqlite3.Database(DB_FILE, (err) => {
     if (err) return console.error('Erro ao abrir o banco de dados:', err);
     console.log('✅ Banco de dados SQLite pronto!');
     
-    // Verificar se a coluna 'atribuidos' existe, e adicionar se não existir
-    db.all("PRAGMA table_info(demandas)", [], (err, columns) => {
-        if (err) return console.error('Erro ao verificar colunas:', err);
-        
-        const hasAtribuidosColumn = columns.some(col => col.name === 'atribuidos');
-        
-        if (!hasAtribuidosColumn) {
-            console.log('Adicionando coluna atribuidos...');
-            db.run("ALTER TABLE demandas ADD COLUMN atribuidos TEXT", (err) => {
-                if (err) console.error('Erro ao adicionar coluna atribuidos:', err);
-                else console.log('✅ Coluna atribuidos adicionada com sucesso!');
+    // Verificar se a tabela existe e criar se não existir
+    db.run(`
+        CREATE TABLE IF NOT EXISTS demandas (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            funcionarioId INTEGER,
+            nomeFuncionario TEXT,
+            emailFuncionario TEXT,
+            categoria TEXT,
+            prioridade TEXT,
+            complexidade TEXT,
+            descricao TEXT,
+            local TEXT,
+            dataCriacao TEXT,
+            dataLimite TEXT,
+            status TEXT,
+            isRotina INTEGER,
+            diasSemana TEXT,
+            tag TEXT,
+            comentarios TEXT,
+            comentarioGestor TEXT,
+            dataConclusao TEXT,
+            atribuidos TEXT
+        )
+    `, (err) => {
+        if (err) {
+            console.error('Erro ao criar tabela:', err);
+        } else {
+            console.log('✅ Tabela demandas verificada/criada com sucesso!');
+            
+            // Verificar se a coluna atribuidos existe
+            db.all("PRAGMA table_info(demandas)", [], (err, columns) => {
+                if (err) {
+                    console.error('Erro ao verificar colunas:', err);
+                    return;
+                }
+                
+                const hasAtribuidosColumn = columns.some(col => col.name === 'atribuidos');
+                
+                if (!hasAtribuidosColumn) {
+                    console.log('📝 Adicionando coluna atribuidos...');
+                    db.run("ALTER TABLE demandas ADD COLUMN atribuidos TEXT", (err) => {
+                        if (err) {
+                            console.error('❌ Erro ao adicionar coluna atribuidos:', err.message);
+                        } else {
+                            console.log('✅ Coluna atribuidos adicionada com sucesso!');
+                        }
+                    });
+                } else {
+                    console.log('✅ Coluna atribuidos já existe!');
+                }
             });
         }
     });
 });
-
-// Criar tabela de demandas se não existir
-db.run(`
-    CREATE TABLE IF NOT EXISTS demandas (
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
-        funcionarioId INTEGER,
-        nomeFuncionario TEXT,
-        emailFuncionario TEXT,
-        categoria TEXT,
-        prioridade TEXT,
-        complexidade TEXT,
-        descricao TEXT,
-        local TEXT,
-        dataCriacao TEXT,
-        dataLimite TEXT,
-        status TEXT,
-        isRotina INTEGER,
-        diasSemana TEXT,
-        tag TEXT,
-        comentarios TEXT,
-        comentarioGestor TEXT,
-        dataConclusao TEXT,
-        atribuidos TEXT
-    )
-`);
 
 // Rota principal para servir o index.html
 app.get('/', (req, res) => {
@@ -67,7 +81,7 @@ app.get('/', (req, res) => {
 
 // GET /api/demandas
 app.get('/api/demandas', (req, res) => {
-    db.all('SELECT * FROM demandas', [], (err, rows) => {
+    db.all('SELECT * FROM demandas ORDER BY dataCriacao DESC', [], (err, rows) => {
         if (err) return res.status(500).json({ success: false, error: err.message });
         
         // Processar os dados para garantir que 'atribuidos' seja um array
@@ -131,7 +145,10 @@ app.post('/api/demandas', (req, res) => {
     ];
     
     db.run(sql, params, function(err) {
-        if (err) return res.status(500).json({ success: false, error: err.message });
+        if (err) {
+            console.error('Erro ao inserir demanda:', err);
+            return res.status(500).json({ success: false, error: err.message });
+        }
         res.json({ success: true, demanda: { id: this.lastID, ...d, dataCriacao: params[8] } });
     });
 });
@@ -169,7 +186,10 @@ app.put('/api/demandas/:id', (req, res) => {
     ];
     
     db.run(sql, params, function(err) {
-        if (err) return res.status(500).json({ success: false, error: err.message });
+        if (err) {
+            console.error('Erro ao atualizar demanda:', err);
+            return res.status(500).json({ success: false, error: err.message });
+        }
         res.json({ success: true, demanda: { id: Number(id), ...d } });
     });
 });
@@ -178,7 +198,10 @@ app.put('/api/demandas/:id', (req, res) => {
 app.delete('/api/demandas/:id', (req, res) => {
     const id = req.params.id;
     db.run('DELETE FROM demandas WHERE id = ?', [id], function(err) {
-        if (err) return res.status(500).json({ success: false, error: err.message });
+        if (err) {
+            console.error('Erro ao deletar demanda:', err);
+            return res.status(500).json({ success: false, error: err.message });
+        }
         res.json({ success: true });
     });
 });
@@ -187,8 +210,11 @@ app.delete('/api/demandas/:id', (req, res) => {
 app.get('/api/demandas/funcionario/:id', (req, res) => {
     const id = req.params.id;
     
-    db.all('SELECT * FROM demandas WHERE funcionarioId = ? OR atribuidos LIKE ?', [id, `%"id":${id}%`], (err, rows) => {
-        if (err) return res.status(500).json({ success: false, error: err.message });
+    db.all('SELECT * FROM demandas WHERE funcionarioId = ? OR atribuidos LIKE ? ORDER BY dataCriacao DESC', [id, `%"id":${id}%`], (err, rows) => {
+        if (err) {
+            console.error('Erro ao buscar demandas do funcionário:', err);
+            return res.status(500).json({ success: false, error: err.message });
+        }
         
         // Processar os dados para garantir que 'atribuidos' seja um array
         const processedRows = rows.map(row => {
@@ -224,8 +250,11 @@ app.get('/api/demandas/funcionario/:id', (req, res) => {
 app.get('/api/demandas/status/:status', (req, res) => {
     const status = req.params.status;
     
-    db.all('SELECT * FROM demandas WHERE status = ?', [status], (err, rows) => {
-        if (err) return res.status(500).json({ success: false, error: err.message });
+    db.all('SELECT * FROM demandas WHERE status = ? ORDER BY dataCriacao DESC', [status], (err, rows) => {
+        if (err) {
+            console.error('Erro ao buscar demandas por status:', err);
+            return res.status(500).json({ success: false, error: err.message });
+        }
         
         // Processar os dados para garantir que 'atribuidos' seja um array
         const processedRows = rows.map(row => {
@@ -247,6 +276,34 @@ app.get('/api/demandas/status/:status', (req, res) => {
     });
 });
 
+// GET /api/stats - Nova rota para estatísticas
+app.get('/api/stats', (req, res) => {
+    const stats = {};
+    
+    // Contagem por status
+    db.all('SELECT status, COUNT(*) as count FROM demandas GROUP BY status', [], (err, rows) => {
+        if (err) {
+            console.error('Erro ao buscar estatísticas:', err);
+            return res.status(500).json({ success: false, error: err.message });
+        }
+        
+        rows.forEach(row => {
+            stats[row.status] = row.count;
+        });
+        
+        // Contagem total
+        db.get('SELECT COUNT(*) as total FROM demandas', [], (err, row) => {
+            if (err) {
+                console.error('Erro ao buscar total:', err);
+                return res.status(500).json({ success: false, error: err.message });
+            }
+            
+            stats.total = row.total;
+            res.json({ success: true, stats });
+        });
+    });
+});
+
 // Health check
 app.get('/health', (req, res) => {
     db.get('SELECT COUNT(*) as count FROM demandas', [], (err, row) => {
@@ -258,4 +315,5 @@ app.get('/health', (req, res) => {
 // Iniciar servidor
 app.listen(PORT, () => {
     console.log(`🚀 Servidor iniciado em porta ${PORT}`);
+    console.log(`🌐 Acesse em: http://localhost:${PORT}`);
 });
